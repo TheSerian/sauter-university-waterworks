@@ -1,0 +1,20 @@
+#pastas locais
+**/.terraform/
+
+#arquivos tfstate
+*.tfstate
+*.tfstate.*
+
+#arquivos tfvars
+*.tfvars
+*.tfvars.json
+
+#logs de crash
+crash.log
+crash.*.log
+
+#arquivos override
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
