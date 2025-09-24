@@ -42,12 +42,14 @@ jobs:
       # inicialização do Terraform
       - name: Terraform Init (Initialize Backend)
         id: init
+        working-directory: terraform/
         run: |
           terraform init
 
       # planejamento do Terraform
       - name: Terraform Plan (Validate Changes)
         id: plan
+        working-directory: terraform/
         run: |
           terraform plan -no-color
 
@@ -55,6 +57,7 @@ jobs:
       - name: Terraform Apply (Provision Infrastructure)
         id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: terraform/
         run: |
           terraform apply -auto-approve -no-color
 
