@@ -1,0 +1,146 @@
+---
+name: CI/CD Pipeline
+
+jobs:
+  # job 1: Terraform
+  manage-infra:
+    name: Manage GCP Infrastructure (Terraform)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - id: 'auth'
+        name: 'Authenticate to GCP using WIF'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:
+            ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # setup do Terraform
+      - name: Setup Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+
+      # inicialização do Terraform
+      - name: Terraform Init (Initialize Backend)
+        id: init
+        run: |
+          terraform init
+
+      # planejamento do Terraform
+      - name: Terraform Plan (Validate Changes)
+        id: plan
+        run: |
+          terraform plan -no-color
+
+      # aplicação do Terraform
+      - name: Terraform Apply (Provision Infrastructure)
+        id: apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          terraform apply -auto-approve -no-color
+
+  # job 2: Integração Contínua
+  ci-build-application:
+    name: CI - Build, Test and Containerize Python API
+    needs: manage-infra
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Application Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Core and Test Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov flake8
+
+      - name: Run Code Linter (Flake8)
+        id: linter
+        run: |
+          flake8 .
+
+      - name: Run Tests & Enforce 85% Coverage
+        id: tests
+        run: |
+          # A flag --cov-fail-under=85 garante a conformidade com o requisito
+          pytest -v --cov=. --cov-fail-under=85
+
+      - id: 'auth-gcp-ci'
+        name: 'Authenticate to GCP for CI Tasks (WIF)'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:
+            ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker to Access Artifact Registry
+        id: configure-docker
+        run: |
+          GCP_DOCKER_HOST="${{ vars.GCP_REGION }}-docker.pkg.dev"
+          gcloud auth configure-docker ${GCP_DOCKER_HOST} --quiet
+
+      - name: Define Image Name and Tag
+        id: set-image-vars
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          DOCKER_HOST="${{ vars.GCP_REGION }}-docker.pkg.dev"
+          IMAGE_FULL_PATH="${DOCKER_HOST}/${{ secrets.GCP_PROJECT_ID }}"
+          IMAGE_FULL_PATH+="/sauter-api-repo/python-api:${IMAGE_TAG}"
+          echo "DOCKER_IMAGE_NAME=$IMAGE_FULL_PATH" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        id: docker-build
+        run: |
+          docker build -t $DOCKER_IMAGE_NAME .
+
+      - name: Push Docker Image to Artifact Registry
+        id: docker-push
+        run: |
+          docker push $DOCKER_IMAGE_NAME
+
+  # job 3: deploy para o Cloud Run
+  cd-deploy-application:
+    name: CD - Deploy to Cloud Run
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: ci-build-application
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - id: 'auth-gcp-cd'
+        name: 'Authenticate to GCP for CD Tasks (WIF)'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:
+            ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Deploy Container to Cloud Run
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        id: deploy-cloudrun
+        with:
+          image: ${{ env.DOCKER_IMAGE_NAME }}
+          service: my-sauter-api-service
+          region: ${{ vars.GCP_REGION }}
+          allow-unauthenticated: true
