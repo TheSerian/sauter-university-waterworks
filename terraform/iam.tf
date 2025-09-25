@@ -33,6 +33,13 @@ resource "google_project_iam_member" "sa_artifact_registry_admin" {
   member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
 }
 
+# permissão para gerenciar o WIF
+resource "google_project_iam_member" "sa_wif_admin" {
+  project = var.project
+  role    = "roles/iam.workloadIdentityPoolAdmin"
+  member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
+}
+
 resource "google_service_account_iam_member" "wi_sa_binding" {
   service_account_id = google_service_account.sa_github_actions.name
   role               = "roles/iam.workloadIdentityUser"
