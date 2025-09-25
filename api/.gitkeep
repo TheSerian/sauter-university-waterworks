@@ -1,0 +1,5 @@
+api/
+ ├─ requisicao.py     # API FastAPI
+ ├─ upload_gcp.py     # classe de upload para GCS
+ ├─ main.py           # função que baixa/processa os CSVs
+ └─ dados_ons/        # pasta temporária para arquivos
