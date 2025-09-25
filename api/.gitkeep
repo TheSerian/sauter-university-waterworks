@@ -1,11 +1,20 @@
 sauter-university-waterworks/
+├── api/
+│   ├── main.py                    # funções de coleta
+│   ├── upload_gcp.py              # Classe de upload GCP
+│   └── chave/                     # Pasta para chave GCP (não versionada)
+│       └── sauter-university-waterworks-aa1bc765f223.json
 │
-├─ api/
-    ├─ requisicao.py          # API FastAPI
-    ├─ upload_gcp.py          # classe de upload para GCS
-    └─ main.py                # função que baixa/processa os CSVs 
+├── dados_ons/                     # Pasta criada automaticamente para dados
+│   ├── ENA_2025_original.csv      # CSVs baixados
+│   └── ENA_2025.parquet           # Parquets processados
 │
-├─ logs/              # será criada pelo código
-├─ dados_ons/         # será criada pelo código
-├─ requirements.txt
-└─ Dockerfile
+├── logs/                          # Pasta criada automaticamente para logs
+│   ├── ons_collector.log          # Logs do processamento
+│   └── api.log                    # Logs da API
+│
+├── requirements.txt               # Dependências Python (completado)
+├── requisicao.py                  # API com logging básico e paginação
+├── Dockerfile                     # Container da aplicação
+├── docker-compose.yml             # Orquestração Docker
+└── README.md                      # Documentação do projeto
