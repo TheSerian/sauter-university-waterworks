@@ -54,7 +54,6 @@ jobs:
         id: plan
         working-directory: terraform/
         env:
-          TF_LOG: TRACE
           TF_VAR_project: ${{ env.GCLOUD_PROJECT }}
           TF_VAR_github_repository_name: ${{ github.repository }}
         run: |
@@ -65,6 +64,10 @@ jobs:
         id: apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         working-directory: terraform/
+        env:
+          TF_LOG: TRACE
+          TF_VAR_project: ${{ env.GCLOUD_PROJECT }}
+          TF_VAR_github_repository_name: ${{ github.repository }}
         run: |
           terraform apply -auto-approve -no-color
 
