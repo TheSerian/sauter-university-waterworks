@@ -1,0 +1,79 @@
+2025-09-25 03:18:08,883 - INFO - Nova solicitação de coleta recebida - Início: 2020/01/01, Fim: 2025/08/24
+2025-09-25 03:18:08,885 - INFO - Iniciando processamento dos arquivos
+2025-09-25 03:18:08,886 - INFO - Iniciando processamento - Período: 2020/01/01 a 2025/08/24
+2025-09-25 03:18:08,887 - INFO - Consultando API do ONS...
+2025-09-25 03:18:09,560 - INFO - Encontrados 58 recursos na API
+2025-09-25 03:18:09,560 - INFO - Processando ano: 2020
+2025-09-25 03:18:09,561 - INFO - Iniciando download do arquivo: dados_ons\ENA_2020_original.csv
+2025-09-25 03:18:11,241 - INFO - [OK] Baixado: dados_ons\ENA_2020_original.csv
+2025-09-25 03:18:11,246 - INFO - Processando arquivo: dados_ons\ENA_2020_original.csv
+2025-09-25 03:18:11,315 - INFO - Arquivo carregado: 8052 linhas, 6 colunas
+2025-09-25 03:18:11,346 - INFO - Após filtro de data: 3168 linhas
+2025-09-25 03:18:11,346 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2020.parquet
+2025-09-25 03:18:11,431 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2020.parquet
+2025-09-25 03:18:11,433 - INFO - Arquivo salvo: dados_ons\ENA_2020.parquet - CSV: 0.54MB | Parquet: 0.15MB | Redução: 72.7%
+2025-09-25 03:18:11,433 - INFO - Processando ano: 2021
+2025-09-25 03:18:11,434 - INFO - Iniciando download do arquivo: dados_ons\ENA_2021_original.csv
+2025-09-25 03:18:13,132 - INFO - [OK] Baixado: dados_ons\ENA_2021_original.csv
+2025-09-25 03:18:13,137 - INFO - Processando arquivo: dados_ons\ENA_2021_original.csv
+2025-09-25 03:18:13,194 - INFO - Arquivo carregado: 8030 linhas, 6 colunas
+2025-09-25 03:18:13,200 - INFO - Após filtro de data: 3168 linhas
+2025-09-25 03:18:13,200 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2021.parquet
+2025-09-25 03:18:13,234 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2021.parquet
+2025-09-25 03:18:13,235 - INFO - Arquivo salvo: dados_ons\ENA_2021.parquet - CSV: 0.54MB | Parquet: 0.15MB | Redução: 72.9%
+2025-09-25 03:18:13,235 - INFO - Processando ano: 2022
+2025-09-25 03:18:13,235 - INFO - Iniciando download do arquivo: dados_ons\ENA_2022_original.csv
+2025-09-25 03:18:15,083 - INFO - [OK] Baixado: dados_ons\ENA_2022_original.csv
+2025-09-25 03:18:15,092 - INFO - Processando arquivo: dados_ons\ENA_2022_original.csv
+2025-09-25 03:18:15,155 - INFO - Arquivo carregado: 8030 linhas, 6 colunas
+2025-09-25 03:18:15,163 - INFO - Após filtro de data: 3168 linhas
+2025-09-25 03:18:15,164 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2022.parquet
+2025-09-25 03:18:15,192 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2022.parquet
+2025-09-25 03:18:15,193 - INFO - Arquivo salvo: dados_ons\ENA_2022.parquet - CSV: 0.55MB | Parquet: 0.15MB | Redução: 72.6%
+2025-09-25 03:18:15,194 - INFO - Processando ano: 2023
+2025-09-25 03:18:15,195 - INFO - Iniciando download do arquivo: dados_ons\ENA_2023_original.csv
+2025-09-25 03:18:16,928 - INFO - [OK] Baixado: dados_ons\ENA_2023_original.csv
+2025-09-25 03:18:16,933 - INFO - Processando arquivo: dados_ons\ENA_2023_original.csv
+2025-09-25 03:18:16,983 - INFO - Arquivo carregado: 8051 linhas, 6 colunas
+2025-09-25 03:18:16,989 - INFO - Após filtro de data: 3170 linhas
+2025-09-25 03:18:16,989 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2023.parquet
+2025-09-25 03:18:17,018 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2023.parquet
+2025-09-25 03:18:17,020 - INFO - Arquivo salvo: dados_ons\ENA_2023.parquet - CSV: 0.54MB | Parquet: 0.15MB | Redução: 72.4%
+2025-09-25 03:18:17,021 - INFO - Processando ano: 2024
+2025-09-25 03:18:17,021 - INFO - Iniciando download do arquivo: dados_ons\ENA_2024_original.csv
+2025-09-25 03:18:18,902 - INFO - [OK] Baixado: dados_ons\ENA_2024_original.csv
+2025-09-25 03:18:18,908 - INFO - Processando arquivo: dados_ons\ENA_2024_original.csv
+2025-09-25 03:18:18,967 - INFO - Arquivo carregado: 8418 linhas, 6 colunas
+2025-09-25 03:18:18,973 - INFO - Após filtro de data: 3312 linhas
+2025-09-25 03:18:18,973 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2024.parquet
+2025-09-25 03:18:19,002 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2024.parquet
+2025-09-25 03:18:19,003 - INFO - Arquivo salvo: dados_ons\ENA_2024.parquet - CSV: 0.57MB | Parquet: 0.15MB | Redução: 72.8%
+2025-09-25 03:18:19,003 - INFO - Processando ano: 2025
+2025-09-25 03:18:19,004 - INFO - Iniciando download do arquivo: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:20,442 - INFO - [OK] Baixado: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:20,446 - INFO - Processando arquivo: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:20,467 - INFO - Arquivo carregado: 696 linhas, 1 colunas
+2025-09-25 03:18:20,469 - ERROR - Coluna 'ena_data' não encontrada em ENA_Diario_por_Bacia-2025
+2025-09-25 03:18:20,469 - INFO - Iniciando download do arquivo: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:21,978 - INFO - [OK] Baixado: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:21,982 - INFO - Processando arquivo: dados_ons\ENA_2025_original.csv
+2025-09-25 03:18:22,019 - INFO - Arquivo carregado: 6118 linhas, 6 colunas
+2025-09-25 03:18:22,023 - INFO - Após filtro de data: 1656 linhas
+2025-09-25 03:18:22,023 - INFO - Convertendo DataFrame para Parquet: dados_ons\ENA_2025.parquet
+2025-09-25 03:18:22,040 - INFO - [PARQUET] Arquivo criado: dados_ons\ENA_2025.parquet
+2025-09-25 03:18:22,041 - INFO - Arquivo salvo: dados_ons\ENA_2025.parquet - CSV: 0.31MB | Parquet: 0.06MB | Redução: 80.4%
+2025-09-25 03:18:22,042 - INFO - Processamento concluído - Anos processados: 6 | Sucessos: 6
+2025-09-25 03:18:22,048 - INFO - Encontrados 6 arquivos Parquet para upload
+2025-09-25 03:18:22,048 - INFO - Iniciando upload do arquivo: ENA_2020.parquet
+2025-09-25 03:18:23,499 - INFO - Upload realizado com sucesso: ENA_2020.parquet
+2025-09-25 03:18:23,500 - INFO - Iniciando upload do arquivo: ENA_2021.parquet
+2025-09-25 03:18:24,202 - INFO - Upload realizado com sucesso: ENA_2021.parquet
+2025-09-25 03:18:24,203 - INFO - Iniciando upload do arquivo: ENA_2022.parquet
+2025-09-25 03:18:24,968 - INFO - Upload realizado com sucesso: ENA_2022.parquet
+2025-09-25 03:18:24,968 - INFO - Iniciando upload do arquivo: ENA_2023.parquet
+2025-09-25 03:18:25,712 - INFO - Upload realizado com sucesso: ENA_2023.parquet
+2025-09-25 03:18:25,713 - INFO - Iniciando upload do arquivo: ENA_2024.parquet
+2025-09-25 03:18:26,469 - INFO - Upload realizado com sucesso: ENA_2024.parquet
+2025-09-25 03:18:26,470 - INFO - Iniciando upload do arquivo: ENA_2025.parquet
+2025-09-25 03:18:27,068 - INFO - Upload realizado com sucesso: ENA_2025.parquet
+2025-09-25 03:18:27,069 - INFO - Processamento concluído - 6/6 uploads realizados com sucesso

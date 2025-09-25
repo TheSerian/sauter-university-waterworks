@@ -1,4 +1,4 @@
-#criação das funçoes pra baixar os arquivos, filtrar e mandar pra api
+#criação das funções pra baixar os arquivos, filtrar e mandar pra api
 import requests
 import pandas as pd
 import os
@@ -6,13 +6,29 @@ import re
 from datetime import datetime
 import pyarrow as pa
 import pyarrow.parquet as pq
+import logging
 
+# config basica de logging
+
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/ons_collector.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def baixar_por_resource_id(resource_id, nome_arquivo):
     """
     Baixa arquivo do ONS usando resource_id
     """
     try:
+        logger.info(f"Iniciando download do arquivo: {nome_arquivo}")
         resp = requests.get(f"https://dados.ons.org.br/api/3/action/resource_show?id={resource_id}")
         resp.raise_for_status()
         url_real = resp.json()["result"]["url"]
@@ -23,11 +39,11 @@ def baixar_por_resource_id(resource_id, nome_arquivo):
         with open(nome_arquivo, "wb") as f:
             f.write(r.content)
 
-        print(f"[OK] Baixado: {nome_arquivo}")
+        logger.info(f"[OK] Baixado: {nome_arquivo}")
         return True
 
     except Exception as e:
-        print(f"[ERRO] Falha ao baixar {nome_arquivo} pelo resource_id {resource_id}: {e}")
+        logger.error(f"[ERRO] Falha ao baixar {nome_arquivo} pelo resource_id {resource_id}: {e}")
         return False
 
 
@@ -46,6 +62,8 @@ def df_para_parquet_em_string(df: pd.DataFrame, arquivo_parquet: str):
     """
     Converte um DataFrame para Parquet garantindo que todas as colunas sejam STRING.
     """
+    logger.info(f"Convertendo DataFrame para Parquet: {arquivo_parquet}")
+    
     # Limpa nomes de colunas
     df.columns = [limpar_nome_colunas(coluna) for coluna in df.columns]
 
@@ -59,13 +77,14 @@ def df_para_parquet_em_string(df: pd.DataFrame, arquivo_parquet: str):
 
     # Salva Parquet
     pq.write_table(tabela, arquivo_parquet, compression="snappy")
+    logger.info(f"[PARQUET] Arquivo criado: {arquivo_parquet}")
     print(f"[PARQUET] Arquivo criado: {arquivo_parquet}")
 
 
 def processar_arquivos(data_inicio: str, data_fim: str):
     pasta = "dados_ons"
     os.makedirs(pasta, exist_ok=True)
-    print(f"[PASTA] Pasta criada ou já existente: {pasta}")
+    logger.info(f"Iniciando processamento - Período: {data_inicio} a {data_fim}")
 
     inicio = datetime.strptime(data_inicio, "%Y/%m/%d")
     fim = datetime.strptime(data_fim, "%Y/%m/%d")
@@ -74,20 +93,21 @@ def processar_arquivos(data_inicio: str, data_fim: str):
     url_api = f"https://dados.ons.org.br/api/3/action/package_show?id={id_dataset}"
 
     try:
+        logger.info("Consultando API do ONS...")
         resp = requests.get(url_api)
         resp.raise_for_status()
         dados = resp.json()
         recursos = dados["result"]["resources"]
-        print(f"[INFO] Encontrados {len(recursos)} recursos na API")
+        logger.info(f"Encontrados {len(recursos)} recursos na API")
     except Exception as erro:
-        print(f"[ERRO] Erro ao acessar API do ONS: {erro}")
+        logger.error(f"Erro ao acessar API do ONS: {erro}")
         return
 
     anos = list(range(inicio.year, fim.year + 1))
     sucessos = 0
 
     for ano in anos:
-        print(f"\n[PROCESSANDO] Ano: {ano}")
+        logger.info(f"Processando ano: {ano}")
         encontrou_ano = False
 
         for r in recursos:
@@ -112,7 +132,7 @@ def processar_arquivos(data_inicio: str, data_fim: str):
                 continue
 
             try:
-                print(f"[CONVERSAO] Processando {arquivo_csv}...")
+                logger.info(f"Processando arquivo: {arquivo_csv}")
 
                 # Lê CSV (tentando UTF-8 e depois Latin1)
                 try:
@@ -132,19 +152,19 @@ def processar_arquivos(data_inicio: str, data_fim: str):
                         on_bad_lines="skip"
                     )
 
-                print(f"[INFO] Arquivo carregado: {len(df)} linhas, {len(df.columns)} colunas")
+                logger.info(f"Arquivo carregado: {len(df)} linhas, {len(df.columns)} colunas")
                 print(f"[DEBUG] Colunas disponíveis: {list(df.columns)}")
 
                 # Converte coluna de data
                 if "ena_data" in df.columns:
                     df["ena_data"] = pd.to_datetime(df["ena_data"], errors="coerce", dayfirst=True)
                 else:
-                    print(f"[ERRO] Coluna 'ena_data' não encontrada em {nome_recurso}")
+                    logger.error(f"Coluna 'ena_data' não encontrada em {nome_recurso}")
                     continue
 
                 # Filtra intervalo de datas
                 df_filtrado = df[(df["ena_data"] >= inicio) & (df["ena_data"] <= fim)].copy()
-                print(f"[INFO] Após filtro de data: {len(df_filtrado)} linhas")
+                logger.info(f"Após filtro de data: {len(df_filtrado)} linhas")
 
                 if len(df_filtrado) > 0:
                     df_para_parquet_em_string(df_filtrado, arquivo_parquet)
@@ -153,21 +173,21 @@ def processar_arquivos(data_inicio: str, data_fim: str):
                     tamanho_parquet = os.path.getsize(arquivo_parquet) / 1024 / 1024
                     reducao = ((tamanho_csv - tamanho_parquet) / tamanho_csv) * 100
 
-                    print(f"[SUCESSO] Arquivo salvo: {arquivo_parquet}")
-                    print(f"  CSV: {tamanho_csv:.2f} MB | Parquet: {tamanho_parquet:.2f} MB | Redução: {reducao:.1f}%")
+                    logger.info(f"Arquivo salvo: {arquivo_parquet} - CSV: {tamanho_csv:.2f}MB | Parquet: {tamanho_parquet:.2f}MB | Redução: {reducao:.1f}%")
                     sucessos += 1
                 else:
-                    print(f"[AVISO] Nenhum dado no intervalo para {ano}")
+                    logger.warning(f"Nenhum dado no intervalo para {ano}")
 
             except Exception as erro:
-                print(f"[ERRO] Falha ao processar {arquivo_csv}: {erro}")
-
+                logger.error(f"Falha ao processar {arquivo_csv}: {erro}")
+                
             break  # já encontrou o recurso do ano, não precisa continuar
 
         if not encontrou_ano:
-            print(f"[AVISO] Não encontrado recurso para o ano {ano}")
-
+            logger.warning(f"Não encontrado recurso para o ano {ano}")
+            
     # Relatório final
+    logger.info(f"Processamento concluído - Anos processados: {len(anos)} | Sucessos: {sucessos}")
     print(f"\n{'='*50}")
     print(f"[RELATÓRIO FINAL]")
     print(f"Anos processados: {len(anos)}")
