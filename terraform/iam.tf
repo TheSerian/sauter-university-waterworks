@@ -33,6 +33,13 @@ resource "google_project_iam_member" "sa_artifact_registry_admin" {
   member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
 }
 
+# getAccessToken para a SA que roda o Terraform.
+resource "google_project_iam_member" "sa_runner_token_creator" {
+  project = var.project
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
+}
+
 # permissão para gerenciar o WIF
 resource "google_project_iam_member" "sa_wif_admin" {
   project = var.project
@@ -40,11 +47,18 @@ resource "google_project_iam_member" "sa_wif_admin" {
   member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
 }
 
-# getAccessToken para a SA que roda o Terraform.
-resource "google_project_iam_member" "sa_runner_token_creator" {
+# permissão para criar outras SAs
+resource "google_project_iam_member" "sa_service_account_creator" {
   project = var.project
-  role    = "roles/iam.serviceAccountTokenCreator"
+  role    = "roles/iam.serviceAccountCreator"
   member  = "serviceAccount:${google_service_account.sa_github_actions.email}"
+}
+
+# permissão para a sa_github_actions impersonar sa_executor
+resource "google_service_account_iam_member" "github_actions_can_impersonate_executor" {
+  service_account_id = google_service_account.sa_executor.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.sa_github_actions.email}"
 }
 
 resource "google_service_account_iam_member" "wi_sa_binding" {
