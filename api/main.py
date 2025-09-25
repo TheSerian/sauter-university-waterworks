@@ -1,8 +1,11 @@
+#criação das funçoes pra baixar os arquivos, filtrar e mandar pra api
 import requests
 import pandas as pd
 import os
 import re
 from datetime import datetime
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 
 def baixar_por_resource_id(resource_id, nome_arquivo):
@@ -10,12 +13,10 @@ def baixar_por_resource_id(resource_id, nome_arquivo):
     Baixa arquivo do ONS usando resource_id
     """
     try:
-        # URL do recurso
         resp = requests.get(f"https://dados.ons.org.br/api/3/action/resource_show?id={resource_id}")
         resp.raise_for_status()
         url_real = resp.json()["result"]["url"]
 
-        # Faz download do CSV
         r = requests.get(url_real, timeout=60)
         r.raise_for_status()
 
@@ -29,7 +30,39 @@ def baixar_por_resource_id(resource_id, nome_arquivo):
         print(f"[ERRO] Falha ao baixar {nome_arquivo} pelo resource_id {resource_id}: {e}")
         return False
 
-def main(data_inicio: str, data_fim: str):
+
+def limpar_nome_colunas(nome_coluna: str) -> str:
+    """
+    Limpa nomes de colunas para que sejam compatíveis com BigQuery.
+    Remove espaços, caracteres especiais e substitui por underscore.
+    """
+    nome_coluna = re.sub(r'[^0-9a-zA-Z_]', '_', nome_coluna)
+    nome_coluna = re.sub(r'_+', '_', nome_coluna)  # substitui múltiplos underscores
+    nome_coluna = nome_coluna.strip('_')  # remove underscores no início/fim
+    return nome_coluna
+
+
+def df_para_parquet_em_string(df: pd.DataFrame, arquivo_parquet: str):
+    """
+    Converte um DataFrame para Parquet garantindo que todas as colunas sejam STRING.
+    """
+    # Limpa nomes de colunas
+    df.columns = [limpar_nome_colunas(coluna) for coluna in df.columns]
+
+    # Garante que todos os campos sejam string
+    for coluna in df.columns:
+        df[coluna] = df[coluna].astype(str)
+
+    # Cria esquema PyArrow com todas colunas STRING
+    esquema = pa.schema([(coluna, pa.string()) for coluna in df.columns])
+    tabela = pa.Table.from_pandas(df, schema=esquema, preserve_index=False)
+
+    # Salva Parquet
+    pq.write_table(tabela, arquivo_parquet, compression="snappy")
+    print(f"[PARQUET] Arquivo criado: {arquivo_parquet}")
+
+
+def processar_arquivos(data_inicio: str, data_fim: str):
     pasta = "dados_ons"
     os.makedirs(pasta, exist_ok=True)
     print(f"[PASTA] Pasta criada ou já existente: {pasta}")
@@ -50,7 +83,7 @@ def main(data_inicio: str, data_fim: str):
         print(f"[ERRO] Erro ao acessar API do ONS: {erro}")
         return
 
-    anos = list(range(inicio.year, fim.year+1))
+    anos = list(range(inicio.year, fim.year + 1))
     sucessos = 0
 
     for ano in anos:
@@ -61,8 +94,8 @@ def main(data_inicio: str, data_fim: str):
             nome_recurso = r.get("name", "")
             resource_id = r.get("id")
 
-            # Busca o ano no nome do recurso
-            match = re.search(r"(\d{4})", nome_recurso)
+            # Busca ano no nome do recurso (ex: ENA 2024)
+            match = re.search(r"\b(20\d{2})\b", nome_recurso)
             if not match:
                 continue
             ano_recurso = int(match.group(1))
@@ -74,21 +107,30 @@ def main(data_inicio: str, data_fim: str):
             arquivo_csv = os.path.join(pasta, f"ENA_{ano}_original.csv")
             arquivo_parquet = os.path.join(pasta, f"ENA_{ano}.parquet")
 
-            # Download pelo resource_id
+            # Download
             if not baixar_por_resource_id(resource_id, arquivo_csv):
                 continue
 
             try:
                 print(f"[CONVERSAO] Processando {arquivo_csv}...")
 
-                # Lê CSV robustamente
-                df = pd.read_csv(
-                    arquivo_csv,
-                    sep=";",
-                    encoding="latin1",
-                    engine="python",
-                    on_bad_lines="skip"
-                )
+                # Lê CSV (tentando UTF-8 e depois Latin1)
+                try:
+                    df = pd.read_csv(
+                        arquivo_csv,
+                        sep=";",
+                        encoding="utf-8",
+                        engine="python",
+                        on_bad_lines="skip"
+                    )
+                except UnicodeDecodeError:
+                    df = pd.read_csv(
+                        arquivo_csv,
+                        sep=";",
+                        encoding="latin1",
+                        engine="python",
+                        on_bad_lines="skip"
+                    )
 
                 print(f"[INFO] Arquivo carregado: {len(df)} linhas, {len(df.columns)} colunas")
                 print(f"[DEBUG] Colunas disponíveis: {list(df.columns)}")
@@ -100,13 +142,12 @@ def main(data_inicio: str, data_fim: str):
                     print(f"[ERRO] Coluna 'ena_data' não encontrada em {nome_recurso}")
                     continue
 
-                # Filtra por intervalo de datas
-                df_filtrado = df[(df["ena_data"] >= inicio) & (df["ena_data"] <= fim)]
+                # Filtra intervalo de datas
+                df_filtrado = df[(df["ena_data"] >= inicio) & (df["ena_data"] <= fim)].copy()
                 print(f"[INFO] Após filtro de data: {len(df_filtrado)} linhas")
 
                 if len(df_filtrado) > 0:
-                    # Salva como Parquet
-                    df_filtrado.to_parquet(arquivo_parquet, index=False)
+                    df_para_parquet_em_string(df_filtrado, arquivo_parquet)
 
                     tamanho_csv = os.path.getsize(arquivo_csv) / 1024 / 1024
                     tamanho_parquet = os.path.getsize(arquivo_parquet) / 1024 / 1024
@@ -121,7 +162,7 @@ def main(data_inicio: str, data_fim: str):
             except Exception as erro:
                 print(f"[ERRO] Falha ao processar {arquivo_csv}: {erro}")
 
-            break  # Para de procurar outros recursos para este ano
+            break  # já encontrou o recurso do ano, não precisa continuar
 
         if not encontrou_ano:
             print(f"[AVISO] Não encontrado recurso para o ano {ano}")
@@ -133,7 +174,7 @@ def main(data_inicio: str, data_fim: str):
     print(f"Sucessos: {sucessos}")
     print(f"Pasta: {pasta}")
 
-    arquivos_parquet = sorted([f for f in os.listdir(pasta) if f.endswith(".parquet")])
+    arquivos_parquet = sorted([f for f in os.listdir(pasta) if f.endswith('.parquet')])
     if arquivos_parquet:
         print(f"\n[ARQUIVOS GERADOS]")
         total_size = 0
@@ -148,4 +189,4 @@ def main(data_inicio: str, data_fim: str):
 
 
 if __name__ == "__main__":
-    main(data_inicio="2025/01/01", data_fim="2025/09/20")
+    processar_arquivos(data_inicio="2025/01/01", data_fim="2025/09/20")

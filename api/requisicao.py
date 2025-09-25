@@ -1,63 +1,62 @@
+#ligar as funções da main com a api no postman
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
 import os
-import main  # Seu módulo que tem a função main para baixar e processar CSVs
-from upload_gcp import UploadGCP  # Supondo que a classe UploadGCP esteja neste arquivo
+from datetime import datetime
+from api import main  # módulo que baixa/processa CSVs
+from api.upload_gcp import UploadGCP
 
+
+# Caminho da chave (fora do versionamento no git)
+CAMINHO_CHAVE = os.path.join("api", "chave", "sauter-university-waterworks-aa1bc765f223.json")
+
+# Aponta para a chave do GCP
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = CAMINHO_CHAVE
 
 app = FastAPI()
 
-# Modelo de dados esperado para o POST
+# Modelo de dados esperado no POST
 class IntervaloDatas(BaseModel):
-    inicio: str  # Ex.: "2025/01/01"
-    fim: str     # Ex.: "2025/09/20"
+    inicio: str
+    fim: str
 
 # Configurações do GCP
 ID_PROJETO = "sauter-university-waterworks"
-NOME_BUCKET = "ons-ena-tabelas"
-CAMINHO_CREDENCIAIS = "caminho/para/credenciais.json"
-ID_DATASET = "nome_dataset_bigquery"
+NOME_BUCKET = "datalake-ons-ena"
 
 # Inicializa o uploader
-uploader = UploadGCP(ID_PROJETO, NOME_BUCKET, CAMINHO_CREDENCIAIS)
+uploader = UploadGCP(ID_PROJETO, NOME_BUCKET, CAMINHO_CHAVE)
+
 
 @app.post("/coletar")
 def coletar_e_enviar(intervalo: IntervaloDatas):
-    """
-    Recebe intervalo de datas, baixa os CSVs, converte para Parquet e envia para GCP.
-    """
     pasta_local = "dados_ons"
     os.makedirs(pasta_local, exist_ok=True)
 
-    # Chama a função main para baixar e processar os CSVs
-    main.main(intervalo.inicio, intervalo.fim)
+    # Baixa e processa os arquivos
+    main.processar_arquivos(intervalo.inicio, intervalo.fim)
 
-    # Lista todos os arquivos Parquet gerados
+    # Lista os arquivos Parquet gerados
     arquivos_parquet = [f for f in os.listdir(pasta_local) if f.endswith(".parquet")]
 
     if not arquivos_parquet:
         return {"mensagem": "Nenhum arquivo gerado para o intervalo informado"}
 
     resultados = []
+    data_ingestao = datetime.now().strftime("%Y-%m-%d")
 
     for arquivo in arquivos_parquet:
         caminho_local = os.path.join(pasta_local, arquivo)
-        nome_blob = arquivo  # Pode customizar o nome no GCS
-        id_tabela = arquivo.replace(".parquet", "")  # Nome da tabela no BigQuery
+        nome_blob = f"raw/reservatorios_ena/ingestion_date={data_ingestao}/{arquivo}"
 
-        # Upload para Storage
         sucesso_gcs = uploader.upload_para_storage(caminho_local, nome_blob)
-
-        # Upload para BigQuery
-        sucesso_bq = uploader.upload_para_bigquery(caminho_local, ID_DATASET, id_tabela)
 
         resultados.append({
             "arquivo": arquivo,
             "upload_gcs": sucesso_gcs,
-            "upload_bigquery": sucesso_bq
+            "blob_path": f"gs://{NOME_BUCKET}/{nome_blob}"
         })
-
     return {
         "mensagem": "Processamento e uploads concluídos",
         "intervalo": {"inicio": intervalo.inicio, "fim": intervalo.fim},
