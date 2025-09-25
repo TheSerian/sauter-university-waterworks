@@ -50,6 +50,7 @@ jobs:
       - name: Terraform Plan (Validate Changes)
         id: plan
         working-directory: terraform/
+        TF_LOG: TRACE
         run: |
           terraform plan -no-color
 
